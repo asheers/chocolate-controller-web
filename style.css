@@ -1,0 +1,68 @@
+:root{color-scheme:dark;font-family:Segoe UI,system-ui,sans-serif;background:#141715;color:#f3f0e7;--muted:#a7b3a9;--green:#c1ed83;--line:#364139}*{box-sizing:border-box}body{max-width:1400px;margin:auto;padding:32px}header,.row,footer{display:flex;align-items:center;justify-content:space-between;gap:12px}h1{font-size:30px;margin:6px 0 25px;letter-spacing:-1px}h2{margin:10px 0}.dot{color:var(--green)}.eyebrow,small,footer{font-size:12px;color:var(--muted);letter-spacing:1px}.mode{display:flex;align-items:center;gap:10px}#notice{padding:14px 18px;border:1px solid var(--line);border-radius:8px;color:var(--green);margin:12px 0 24px;min-height:50px}main{display:grid;grid-template-columns:320px 1fr;border:1px solid var(--line);border-radius:14px;overflow:hidden}aside{background:#1c221e;padding:22px;border-right:1px solid var(--line)}label{display:block;font-size:13px;color:var(--muted);margin:10px 0}input,select{display:block;width:100%;background:#141a16;color:#f3f0e7;border:1px solid #47564b;padding:12px;border-radius:6px;margin-top:7px;font:inherit}input[type=checkbox]{display:inline;width:20px;height:20px;margin:0;accent-color:var(--green)}button,.file{background:#28332b;color:#f3f0e7;border:1px solid #49594d;border-radius:7px;padding:12px 15px;font:inherit;cursor:pointer;min-height:46px}button:hover,.file:hover{background:#38493c}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.file:focus-within{outline:3px solid var(--green);outline-offset:3px}button:disabled{opacity:.4;cursor:default}nav{margin:18px 0;max-height:430px;overflow:auto}nav button{display:block;width:100%;text-align:left;background:transparent;border-color:transparent;margin:6px 0}nav button.active{border-color:var(--green);background:#303d2d}nav span{display:block;font-size:13px;color:var(--muted);margin-top:6px}.performance{padding:30px}#title{font-size:clamp(27px,4vw,46px);letter-spacing:-1.5px;margin-top:30px}#artist{color:var(--muted);margin-bottom:30px}.patches{display:grid;grid-template-columns:1fr 1fr;gap:16px}.patch{padding:22px;text-align:left;min-height:155px;background:#202a23;display:flex;flex-direction:column;gap:10px}.patch strong{font-size:24px}.patch span{color:var(--muted)}.patch.active{background:var(--green);color:#162014;border-color:var(--green)}.patch.active span{color:#30452b}#selected{min-height:24px;color:var(--green)}.hint{font-size:13px;color:var(--muted);margin-top:24px}small{display:block;line-height:1.6;margin-top:18px;letter-spacing:0}.file{position:relative;font-size:14px;margin:0;overflow:hidden}.file input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0}details{border:1px solid var(--line);border-radius:10px;margin-top:22px}summary{cursor:pointer;padding:18px}#status{float:right;font-size:13px;color:var(--green)}.settings{padding:0 22px 22px;max-width:800px}pre{background:#101410;padding:14px;max-height:180px;overflow:auto;white-space:pre-wrap;font-size:12px}dialog{background:#202a23;color:inherit;border:1px solid #60765a;border-radius:12px;width:min(700px,95vw);max-height:90vh;padding:24px}dialog::backdrop{background:#000a}fieldset{border:1px solid var(--line);border-radius:7px;margin:15px 0;display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}legend{color:var(--green)}.danger,#edit-error{color:#ffb4a6}.primary{background:var(--green);color:#162014}footer{padding-top:25px}footer span{letter-spacing:0}@media(max-width:800px){body{padding:16px}main{grid-template-columns:240px 1fr}.performance{padding:20px}.patches{gap:10px}.patch{padding:16px}.row{flex-wrap:wrap}}@media(max-width:600px){main{display:flex;flex-direction:column}aside{border-right:0;border-bottom:1px solid var(--line)}nav{max-height:180px}.patch{min-height:140px}.patch strong{font-size:21px}header{align-items:flex-start}h1{font-size:25px}.mode{font-size:12px}fieldset{grid-template-columns:1fr 1fr}fieldset label:first-of-type{grid-column:1/-1}#status{float:none;display:block;margin-top:8px}}
+
+/* Keep long setlists inside their panel at every screen size. */
+aside{display:flex;flex-direction:column;min-height:0;min-width:0}
+aside nav{flex:1 1 auto;min-height:0;overscroll-behavior:contain}
+aside>.row,aside>label,aside>small{flex-shrink:0}
+.performance{min-width:0}
+#title,.patch strong,nav button{overflow-wrap:anywhere}
+
+/* Short laptop and landscape-tablet viewports, including browser chrome. */
+@media(min-width:601px) and (max-height:850px){
+  body{padding:14px 20px}
+  header{min-height:48px}
+  h1{font-size:26px;margin:2px 0 4px}
+  #notice{min-height:40px;padding:9px 14px;margin:6px 0 12px;font-size:14px}
+  main{grid-template-columns:280px 1fr}
+  aside{padding:14px;max-height:max(430px,calc(100dvh - 190px))}
+  aside h2{font-size:19px;margin:4px 0}
+  aside label{margin:6px 0}
+  aside input{padding:10px;margin-top:4px}
+  aside nav{margin:8px 0;max-height:none}
+  nav button{padding:8px 10px;margin:2px 0;min-height:48px}
+  nav span{margin-top:3px;font-size:12px}
+  aside>.row{gap:6px}
+  aside .row button,aside .file{padding:10px;font-size:13px;min-height:44px}
+  aside small{margin-top:10px;line-height:1.4}
+  .performance{padding:14px 20px}
+  .performance>.row:first-child button{min-height:44px;padding:9px 14px}
+  #title{font-size:clamp(26px,3vw,36px);letter-spacing:-1px;line-height:1.15;margin:10px 0 4px}
+  #artist{margin:0 0 14px;font-size:15px}
+  .patches{gap:10px}
+  .patch{padding:12px 16px;min-height:104px;gap:5px}
+  .patch strong{font-size:22px;line-height:1.15}
+  .patch span{font-size:13px}
+  #selected{font-size:13px;min-height:18px;margin:8px 0}
+  .performance>.row button{min-height:44px;padding:9px 14px}
+  .hint{font-size:12px;margin:10px 0 0}
+  details{margin-top:12px}
+  summary{padding:12px 16px;min-height:44px}
+  footer{padding-top:12px}
+}
+@media(min-width:601px) and (max-width:900px) and (max-height:850px){
+  main{grid-template-columns:240px 1fr}
+  .performance{padding:14px}
+  .patch{padding:12px}
+}
+@media(max-width:600px){
+  aside nav{flex:0 1 auto;max-height:180px}
+}
+
+/* One compact search field per switch, with bounded results only while searching. */
+#patch-summary{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:var(--muted);max-height:110px;overflow:auto;flex-shrink:0}
+.patch-import{flex-shrink:0;text-align:center;margin-top:10px}
+.patch-picker{grid-column:1/-1;position:relative;min-width:0;margin:0}
+.patch-results{position:absolute;top:100%;left:0;right:0;z-index:2;max-height:150px;overflow:auto;background:#141a16;border:1px solid var(--line);box-shadow:0 6px 16px #0008}
+.patch-results:empty{display:none}
+.patch-results button{display:block;width:100%;text-align:left;border:0;border-radius:0;min-height:36px;padding:8px;font-size:13px;overflow-wrap:anywhere}
+.patch-results p{padding:8px;margin:0;font-size:13px}
+#editor{padding:16px;width:min(760px,95vw);overflow:auto}
+#editor form>label{display:inline-block;width:calc(50% - 8px);margin:4px 4px 8px 0}
+#assignments{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#assignments fieldset{min-width:0;margin:0;padding:10px;gap:6px;grid-template-columns:minmax(0,2fr) minmax(65px,1fr) minmax(60px,1fr)}
+#assignments label{margin:2px 0;min-width:0}
+#editor input,#editor select{padding:8px;margin-top:4px;min-height:36px}
+#editor .row{flex-wrap:wrap}
+@media(max-width:600px){#assignments{grid-template-columns:1fr}#editor form>label{display:block;width:100%}#assignments fieldset label:first-of-type{grid-column:auto}}
+
+#assignments fieldset:nth-child(n+3) .patch-results{top:auto;bottom:100%}
