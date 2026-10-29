@@ -66,3 +66,28 @@ aside>.row,aside>label,aside>small{flex-shrink:0}
 @media(max-width:600px){#assignments{grid-template-columns:1fr}#editor form>label{display:block;width:100%}#assignments fieldset label:first-of-type{grid-column:auto}}
 
 #assignments fieldset:nth-child(n+3) .patch-results{top:auto;bottom:100%}
+
+/* Mini Mode: title + four patches for a shallow floating window over MobileSheets. */
+#update{display:block;margin:8px 0 0;background:var(--green);color:#162014}
+#update[hidden]{display:none}
+footer #version{color:var(--muted)}
+body.mini{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+body.mini>header,body.mini aside,body.mini details,body.mini footer,body.mini #update,body.mini #artist,body.mini #selected,body.mini .hint,body.mini .performance>.row:not(:first-child),body.mini .performance .eyebrow,body.mini #edit{display:none}
+body.mini main{display:block;border:0;order:0}
+body.mini .performance{padding:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px}
+body.mini .performance>*{grid-column:1/-1}
+body.mini #title{grid-row:1;grid-column:1;margin:0;font-size:clamp(18px,4.5vh,26px);letter-spacing:-.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.mini .performance>.row:first-child{grid-row:1;grid-column:2}
+body.mini #mini-toggle{min-height:44px;padding:8px 14px}
+body.mini .patches{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+body.mini .patch{min-height:64px;padding:8px 10px;gap:2px;justify-content:center}
+body.mini .patch>span:first-child{display:none}
+body.mini .patch::before{content:attr(data-key);font-size:12px;font-weight:700;color:var(--muted)}
+body.mini .patch.active::before{color:#30452b}
+body.mini .patch strong{font-size:clamp(15px,4vh,20px);line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+body.mini .patch span{font-size:11px}
+body.mini #notice{order:1;margin:0;min-height:0;padding:3px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:420px){body.mini .patches{grid-template-columns:1fr 1fr}}
+#mini-song{display:none}
+body.mini #title{display:none}
+body.mini #mini-song{display:block;grid-row:1;grid-column:1;margin:0;min-height:44px;padding:6px 10px;font-size:clamp(16px,4vh,20px);font-weight:600;text-overflow:ellipsis}
