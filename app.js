@@ -1,6 +1,6 @@
 import {Controller,samples,validateSongs,songNumberMessages} from './model.js';
-import {loadData,saveData,exportData,importData,rawSavedData} from './storage.js';
-import {catalogueFromEntries,mergeCatalogue} from './catalogue.js';
+import {loadData,saveData,exportData,importData,rawSavedData,loadReconciliation,recordReconciliation,undoReconciliation,undoProblem,dismissFlag} from './storage.js';
+import {catalogueFromEntries,mergeCatalogue,reconcile,outstandingFlags,flagText,moveText} from './catalogue.js';
 import {readZip} from './zip-reader.js';
 import {addPatchPicker} from './patch-picker.js';
 import {Midi,hex} from './midi.js';
@@ -37,7 +37,7 @@ $('form').elements.midiSong.oninput=midiSongHint;
 function editSong(fresh=false){isNew=fresh;const song=fresh?{id:crypto.randomUUID(),title:'',artist:'',patches:['Rhythm','Chorus','Lead','Alternative'].map(label=>({label,bank:33,slot:'A'}))}:controller.song;draftId=song.id;draftOrder=controller.songs.map(s=>s.id);if(fresh)draftOrder.push(draftId);$('form').elements.title.value=song.title;$('form').elements.artist.value=song.artist;$('form').elements.midiSong.value=song.midiSong??'';midiSongHint();$('assignments').replaceChildren();song.patches.forEach((p,i)=>{const field=el('fieldset','');field.append(el('legend','Switch '+(i+1)));for(const [name,title,value] of [['label','Button label',p.label],['bank','Bank',p.bank],['slot','Slot',p.slot]]){const label=el('label',title);const input=document.createElement(name==='slot'?'select':'input');input.name=name+i;if(name==='slot'){for(const slot of 'ABCD'){const option=el('option',slot);input.append(option);}}else if(name==='bank'){input.type='number';input.min=1;input.max=64;input.required=true;input.step=1;}else input.maxLength=200;input.value=value;label.append(input);field.append(label);}addPatchPicker(field,p,i,catalogue);$('assignments').append(field);});$('edit-error').textContent='';$('delete').disabled=fresh;$('editor').showModal();}
 $('add').onclick=()=>editSong(true);$('edit').onclick=()=>editSong();$('cancel').onclick=()=>$('editor').close();
 for(const [id,delta] of [['up',-1],['down',1]])$(id).onclick=()=>{const i=draftOrder.indexOf(draftId),j=i+delta;if(j>=0&&j<draftOrder.length){[draftOrder[i],draftOrder[j]]=[draftOrder[j],draftOrder[i]];$('edit-error').textContent='Setlist position '+(j+1)+' (save to apply)';}};
-function persist(next,selected,nextCatalogue=catalogue){if(loadFailed)throw Error('Existing saved data is unreadable. Back up and repair the saved controller data before saving.');const valid=validateSongs(next);saveData(valid,nextCatalogue);catalogue=nextCatalogue;controller.songs=valid;controller.songId=selected;controller.last=null;render();}
+function persist(next,selected,nextCatalogue=catalogue){if(loadFailed)throw Error('Existing saved data is unreadable. Back up and repair the saved controller data before saving.');const valid=validateSongs(next);saveData(valid,nextCatalogue);catalogue=nextCatalogue;controller.songs=valid;controller.songId=selected;controller.last=null;render();refreshReconcile();}
 $('form').onsubmit=e=>{e.preventDefault();try{const values=new FormData($('form'));const midiSong=values.get('midiSong');const song={id:draftId,title:values.get('title'),artist:values.get('artist'),...(midiSong===''?{}:{midiSong:Number(midiSong)}),patches:Array.from({length:4},(_,i)=>({label:values.get('label'+i),bank:Number(values.get('bank'+i)),slot:values.get('slot'+i)}))};const next=draftOrder.map(id=>id===draftId?song:controller.songs.find(s=>s.id===id));persist(next,draftId);$('editor').close();notice('Song saved.');}catch(error){$('edit-error').textContent=error.message;}};
 $('delete').onclick=()=>{if(!confirm('Delete this song from the setlist?'))return;try{const next=controller.songs.filter(s=>s.id!==draftId);persist(next,next[0]?.id);$('editor').close();notice('Song deleted.');}catch(error){$('edit-error').textContent=error.message;}};
 $('export').onclick=safe(()=>{const raw=loadFailed?rawSavedData():exportData(controller.songs,catalogue);const url=URL.createObjectURL(new Blob([raw],{type:'application/json'}));const a=el('a','');a.href=url;a.download='chocolate-songs.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
@@ -49,13 +49,51 @@ $('patch-import').onchange=async()=>{
     if(loadFailed)throw Error('Saved controller data must be repaired before importing.');
     if(file.size>32*1024*1024)throw Error('ZIP must be under 32 MB.');
     const result=catalogueFromEntries(await readZip(await file.arrayBuffer()));
-    const next=mergeCatalogue(catalogue,result.patches);
-    saveData(controller.songs,next);catalogue=next;
-    summary.textContent=`Imported ${result.patches.length} patch names; ${catalogue.length} in catalogue. Song labels and assignments preserved.`+
-      (result.warnings.length?'\n'+result.warnings.length+' warning(s):\n'+result.warnings.join('\n'):' No warnings.');
+    const next=mergeCatalogue(catalogue,result.patches),plan=reconcile(catalogue,next,controller.songs);
+    const finish=outcome=>{summary.textContent=`Imported ${result.patches.length} patch names; ${catalogue.length} in catalogue. ${outcome}`+
+      (result.warnings.length?'\n'+result.warnings.length+' warning(s):\n'+result.warnings.join('\n'):' No warnings.');};
+    const namesOnly=outcome=>{saveData(controller.songs,next);catalogue=next;finish(outcome);refreshReconcile();};
+    if(!plan.moves.length&&!plan.flags.length){namesOnly('Song labels and assignments preserved.'+(!catalogue.length?' This is your naming baseline: check your songs play the right patches before importing a backup with moved patches.':''));return;}
+    previewReconcile(plan,next,result,finish,namesOnly);
   } catch(error){summary.textContent='Import failed: '+error.message;}
 };
-$('patch-summary').textContent=catalogue.length?catalogue.length+' patch names saved.':'No patch catalogue imported.';
+const PENDING='Review the import. Nothing is saved until you confirm.';
+function previewReconcile(plan,next,result,finish,namesOnly){
+  const section=(heading,items)=>{if(!items.length)return [];const list=el('ul','');list.append(...items.map(text=>el('li',text)));return [el('h3',heading),list];};
+  $('reconcile-warnings').replaceChildren(...section('Backup warnings',result.warnings));
+  $('reconcile-rows').replaceChildren(...section('Will update ('+plan.moves.length+')',plan.moves.map(moveText)),...section('Needs your attention: left unchanged ('+plan.flags.length+')',plan.flags.map(flagText)));
+  const missing=256-result.patches.length;
+  $('reconcile-note').textContent=(plan.unknown?'Couldn’t check: '+plan.unknown+' assignments on blank or unnamed slots. ':'')+(missing?'Not in this backup: '+missing+' positions keep their saved names and are treated as unchanged. ':'')+'Custom labels are kept. The GP-200 is not changed.';
+  $('reconcile-error').textContent='';
+  $('reconcile-apply').textContent=plan.moves.length?'Apply '+plan.moves.length+' update'+(plan.moves.length===1?'':'s')+' and import':'Import and keep warnings';
+  $('patch-summary').textContent=PENDING;
+  $('reconcile-apply').onclick=()=>{try{
+    const {flags}=loadReconciliation();
+    const earlier=outstandingFlags(flags,plan.songs).filter(o=>!plan.flags.some(f=>f.songId===o.songId&&f.index===o.index));
+    recordReconciliation({flags:[...earlier,...plan.flags],undo:{before:exportData(controller.songs,catalogue),after:exportData(plan.songs,next),beforeFlags:flags}},()=>persist(plan.songs,controller.songId,next));
+    finish(plan.moves.length+' assignment(s) updated; '+plan.flags.length+' need attention.');
+    $('reconcile').close();
+  }catch(error){$('reconcile-error').textContent=error.message;}};
+  $('reconcile-names').onclick=()=>{try{namesOnly('Song labels and assignments left unchanged at your request.');$('reconcile').close();}catch(error){$('reconcile-error').textContent=error.message;}};
+  $('reconcile').showModal();
+}
+$('reconcile-cancel').onclick=()=>$('reconcile').close();
+// Also catches Escape.
+$('reconcile').onclose=()=>{if($('patch-summary').textContent===PENDING)$('patch-summary').textContent='Import cancelled. Nothing changed.';};
+// Runs after saves only, not from render(), so song and MIDI selection never pay for it.
+function refreshReconcile(){
+  const {flags,undo}=loadReconciliation(),open=outstandingFlags(flags,controller.songs),problem=undoProblem(undo);
+  $('patch-flags').hidden=!open.length;$('patch-flag-list').replaceChildren(...open.map(f=>{const item=el('li',flagText(f)),dismiss=el('button','Dismiss');dismiss.setAttribute('aria-label','Dismiss warning for '+f.song+', switch '+(f.index+1));dismiss.onclick=safe(()=>{dismissFlag(f);refreshReconcile();notice('Warning dismissed. Song and patch catalogue unchanged.');($('patch-flag-list').querySelector('button')??$('patch-import')).focus();});item.append(dismiss);return item;}));
+  $('undo-reconcile').hidden=!undo;$('undo-reconcile').disabled=!!problem;
+  $('undo-reason').hidden=!problem;$('undo-reason').textContent=problem;
+  document.querySelector('aside').classList.toggle('reconciling',open.length>0||!!undo);
+}
+$('undo-reconcile').onclick=safe(()=>{try{
+  if(!confirm('Undo the last reconciliation? This restores the songs and patch catalogue saved before it.'))return;
+  undoReconciliation(data=>persist(data.songs,data.songs.some(s=>s.id===controller.songId)?controller.songId:data.songs[0]?.id,data.catalogue));
+  $('patch-summary').textContent=catalogue.length+' patch names saved.';notice('Reconciliation undone. Songs and patch catalogue restored.');
+}finally{refreshReconcile();}});
+$('patch-summary').textContent=catalogue.length?catalogue.length+' patch names saved.':'No patch catalogue imported.';refreshReconcile();
 // Mini Mode is CSS only: nothing reloads, so MIDI, song and patch state are untouched.
 function setMini(on){document.body.classList.toggle('mini',on);$('mini-toggle').textContent=on?'Full mode':'Mini mode';const url=new URL(location.href);if(on)url.searchParams.set('mode','mini');else url.searchParams.delete('mode');history.replaceState(null,'',url);}
 $('mini-toggle').onclick=()=>setMini(!document.body.classList.contains('mini'));

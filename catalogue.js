@@ -26,6 +26,53 @@ export function searchCatalogue(catalogue, query) {
 export function assignPatch(assignment, patch) {
   return {...assignment, label:patch.name, bank:patch.bank, slot:patch.slot};
 }
+const address = p => `${p.bank}-${p.slot}`;
+// Names and positions only. Every lookup uses the two snapshots, so swaps and chains cannot compound.
+export function reconcile(previous, next, songs) {
+  const index = catalogue => {
+    const names = new Map();
+    for (const p of catalogue) if (p.name) names.set(p.name, [...(names.get(p.name) ?? []), p]);
+    return names;
+  };
+  const nameAt = (catalogue, a) => catalogue.find(p => position(p) === position(a))?.name ?? '';
+  const before = index(previous), after = index(next), moves = [], flags = [];
+  let unknown = 0;
+  const updated = songs.map(song => ({...song, patches:song.patches.map((a, i) => {
+    const name = nameAt(previous, a), now = nameAt(next, a);
+    if (!name) { unknown++; return a; }
+    if (now === name) return a;
+    const row = {songId:song.id, song:song.title, index:i, label:a.label, bank:a.bank, slot:a.slot, name, now};
+    const found = after.get(name) ?? [];
+    if (!found.length) flags.push({...row, kind:now && !before.has(now) ? 'rename' : 'missing'});
+    else if (found.length > 1 || before.get(name).length > 1) flags.push({...row, kind:'duplicate', candidates:found.map(({bank, slot}) => ({bank, slot}))});
+    else {
+      const to = {bank:found[0].bank, slot:found[0].slot};
+      moves.push({...row, to});
+      return {...a, ...to}; // Bank and slot only: custom labels must survive.
+    }
+    return a;
+  })}));
+  return {songs:updated, moves, flags, unknown};
+}
+// A flag lasts until its assignment's label, bank or slot changes, or its song is removed.
+export function outstandingFlags(flags, songs) {
+  return flags.flatMap(f => {
+    const song = songs.find(s => s.id === f.songId), a = song?.patches[f.index];
+    return a && a.label === f.label && a.bank === f.bank && a.slot === f.slot ? [{...f, song:song.title}] : [];
+  });
+}
+export function moveText(m) {
+  return `${m.song} · Switch ${m.index + 1} "${m.label}": ${m.name} ${address(m)} → ${address(m.to)}`;
+}
+export function flagText(f) {
+  const here = address(f), holds = f.now ? `${here} now holds "${f.now}"` : `${here} is now blank`;
+  const problem = {
+    rename:`possible rename — "${f.name}" is gone and ${holds}.`,
+    missing:`missing — "${f.name}" not found; ${holds}.`,
+    duplicate:`duplicate name "${f.name}" — candidates ${[].concat(f.candidates ?? []).map(address).join(', ')}; ${holds}.`,
+  }[f.kind] ?? `check "${f.name}"; ${holds}.`;
+  return `${f.song} · Switch ${f.index + 1} "${f.label}" (${here}): ${problem}`;
+}
 export function decodePatchName(bytes, offset = 0x44) {
   if (bytes.length < offset + 16) throw Error('Truncated patch name field.');
   let name = '';
