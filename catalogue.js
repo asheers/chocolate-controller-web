@@ -38,6 +38,7 @@ export function reconcile(previous, next, songs) {
   const before = index(previous), after = index(next), moves = [], flags = [];
   let unknown = 0;
   const updated = songs.map(song => ({...song, patches:song.patches.map((a, i) => {
+    if (a.ctrl !== undefined) return a; // CTRL switches have no patch to follow.
     const name = nameAt(previous, a), now = nameAt(next, a);
     if (!name) { unknown++; return a; }
     if (now === name) return a;

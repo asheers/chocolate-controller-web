@@ -106,3 +106,7 @@ body.mini #notice{order:1;margin:0;min-height:0;padding:3px 8px;font-size:12px;w
 #mini-song{display:none}
 body.mini #title{display:none}
 body.mini #mini-song{display:block;grid-row:1;grid-column:1;margin:0;min-height:44px;padding:6px 10px;font-size:clamp(16px,4vh,20px);font-weight:600;text-overflow:ellipsis}
+#editor #assignments legend{padding:0 6px}
+#editor #assignments legend select{display:inline-block;width:auto;min-height:0;box-sizing:border-box;height:24px;padding:0 6px;margin:0 0 0 12px;font-size:13px;line-height:normal;vertical-align:middle;border-radius:4px}
+#assignments label[hidden]{display:none}
+#editor .check input{min-height:0;padding:0;margin:0 6px 0 0;vertical-align:middle}
