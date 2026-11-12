@@ -66,6 +66,12 @@ aside>.row,aside>label,aside>small{flex-shrink:0}
 /* Same bank as Switch 1: reachable on the GP-200 footswitches. CTRL: an effect toggle, not a patch. Text labels carry the meaning too. */
 .patch.same-bank{border:2px dashed var(--green)}
 .patch.ctrl{border-left:6px solid #e0b25c}
+/* Same bank and slot letter matches the switch number (1=A … 4=D): solid. Otherwise a badge shows the real GP-200 footswitch. */
+.patch.same-pos{border-style:solid}
+.patch{position:relative}
+.patch:has(.slot-badge)>:not(.slot-badge){padding-right:64px}
+.patch .slot-badge{position:absolute;top:12px;right:12px;font-size:30px;font-weight:700;line-height:1;padding:6px 12px;border:2px solid var(--green);border-radius:6px;color:var(--green)}
+.patch.active .slot-badge{border-color:#162014;color:#162014}
 
 /* One compact search field per switch, with bounded results only while searching. */
 #patch-summary{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:var(--muted);max-height:110px;overflow:auto;flex-shrink:0}
@@ -114,3 +120,7 @@ body.mini #mini-song{display:block;grid-row:1;grid-column:1;margin:0;min-height:
 #editor #assignments legend select{display:inline-block;width:auto;min-height:0;box-sizing:border-box;height:24px;padding:0 6px;margin:0 0 0 12px;font-size:13px;line-height:normal;vertical-align:middle;border-radius:4px}
 #assignments label[hidden]{display:none}
 #editor .check input{min-height:0;padding:0;margin:0 6px 0 0;vertical-align:middle}
+/* Mini Mode: keep switch height; the border and a smaller badge carry the footswitch info. */
+body.mini .patch .footswitch{display:none}
+body.mini .patch .slot-badge{top:6px;right:6px;font-size:18px;padding:2px 6px}
+body.mini .patch:has(.slot-badge)>:not(.slot-badge){padding-right:32px}

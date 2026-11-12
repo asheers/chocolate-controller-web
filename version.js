@@ -1,1 +1,1 @@
-self.CHOCOLATE_BUILD={"channel":"LIVE","version":"v0.2.1"};
+self.CHOCOLATE_BUILD={"channel":"LIVE","version":"v0.2.3"};
