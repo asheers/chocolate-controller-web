@@ -66,6 +66,9 @@ aside>.row,aside>label,aside>small{flex-shrink:0}
 /* Same bank as Switch 1: reachable on the GP-200 footswitches. CTRL: an effect toggle, not a patch. Text labels carry the meaning too. */
 .patch.same-bank{border:2px dashed var(--green)}
 .patch.ctrl{border-left:6px solid #e0b25c}
+/* Blank: follows Switch 1's bank. Blue bar and italic name; the "(blank)" text carries the meaning too. */
+.patch.blank{border-left:6px solid #7cc4f0}
+.patch.blank strong{font-style:italic}
 /* Same bank and slot letter matches the switch number (1=A … 4=D): solid. Otherwise a badge shows the real GP-200 footswitch. */
 .patch.same-pos{border-style:solid}
 .patch{position:relative}

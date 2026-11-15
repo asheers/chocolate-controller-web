@@ -11,7 +11,12 @@ export function validateSongs(data) {
     if (typeof song.title !== 'string' || !song.title.trim() || song.title.length > 200 || typeof song.artist !== 'string' || song.artist.length > 200) throw Error('Songs need a title and artist text (maximum 200 characters).');
     if (!Array.isArray(song.patches) || song.patches.length !== 4) throw Error('Each song needs four patches.');
     if (song.autoLoad !== undefined && typeof song.autoLoad !== 'boolean') throw Error('Auto-load first patch must be true or false.');
+    if (song.patches[0]?.blank) throw Error('Switch 1 cannot be blank.');
     return {id:song.id,title:song.title.trim(),artist:song.artist,patches:song.patches.map(p=>{
+      if (p?.blank !== undefined) {
+        if (p.blank !== true || p.ctrl !== undefined || p.bank !== undefined || p.slot !== undefined) throw Error('Blank switches need no CTRL, bank or slot.');
+        return {blank:true};
+      }
       if (p && p.ctrl !== undefined) {
         if (!Number.isInteger(p.ctrl) || p.ctrl<1 || p.ctrl>8 || p.bank !== undefined || p.slot !== undefined || typeof p.label !== 'string' || p.label.length>200) throw Error('CTRL switches need CTRL 1–8, no bank/slot, and a label of up to 200 characters.');
         return {label:p.label,ctrl:p.ctrl};
@@ -37,6 +42,9 @@ export function ctrlMessages(ctrl) {
   if (!Number.isInteger(ctrl) || ctrl<1 || ctrl>8) throw Error('CTRL must be 1–8.');
   return [[0xB0,ctrl<=4?68+ctrl:71+ctrl,127]];
 }
+// Blank Switch N plays slot A–D (by N) in the bank of the first real patch switch, normally Switch 1; bank 1 if none.
+export function resolveSwitch(song,index){const a=song.patches[index];if(!a.blank)return a;
+  return {label:'',bank:song.patches.find(p=>p.bank!==undefined)?.bank??1,slot:'ABCD'[index]};}
 export const switchMessages = a => a.ctrl !== undefined ? ctrlMessages(a.ctrl) : patchMessages(a);
 export function chocolateButton(data) {
   return data.length===2 && data[0]===0xC0 && Number.isInteger(data[1]) && data[1]>=0 && data[1]<=3 ? data[1] : null;
@@ -56,7 +64,7 @@ export class Controller {
   get song(){return this.songs.find(s=>s.id===this.songId);}
   select(id){if(!this.songs.some(s=>s.id===id))throw Error('Unknown song');this.songId=id;this.last=null;}
   // The only path that transmits. A CTRL press leaves the last-patch highlight alone: its state is unknown.
-  press(index){if(!Number.isInteger(index)||index<0||index>3||!this.song)throw Error('Select a song first.');const a=this.song.patches[index],messages=switchMessages(a);this.send(messages);if(a.ctrl===undefined)this.last=index;return messages;}
+  press(index){if(!Number.isInteger(index)||index<0||index>3||!this.song)throw Error('Select a song first.');const a=resolveSwitch(this.song,index),messages=switchMessages(a);this.send(messages);if(a.ctrl===undefined)this.last=index;return messages;}
   receive(data){const index=chocolateButton(data);if(index!==null)this.press(index);}
   // An active song choice (list, Mini, Previous/Next, external MIDI). A different song auto-loads
   // Button 1's patch when enabled, Button 1 is a patch and `ready` (connected or simulating).
