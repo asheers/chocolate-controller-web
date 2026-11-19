@@ -43,6 +43,8 @@ export function reconcile(previous, next, songs) {
     if (!name) { unknown++; return a; }
     if (now === name) return a;
     const row = {songId:song.id, song:song.title, index:i, label:a.label, bank:a.bank, slot:a.slot, name, now};
+    // A "Blank" placeholder is bound to its slot, not its name: take whatever patch is there now.
+    if (/^blank$/i.test(name) && now) { moves.push({...row, to:{bank:a.bank, slot:a.slot}, relabel:now}); return {...a, label:now}; }
     const found = after.get(name) ?? [];
     if (!found.length) flags.push({...row, kind:now && !before.has(now) ? 'rename' : 'missing'});
     else if (found.length > 1 || before.get(name).length > 1) flags.push({...row, kind:'duplicate', candidates:found.map(({bank, slot}) => ({bank, slot}))});
@@ -63,6 +65,7 @@ export function outstandingFlags(flags, songs) {
   });
 }
 export function moveText(m) {
+  if (m.relabel) return `${m.song} · Switch ${m.index + 1} "${m.label}" (${address(m)}): Blank → "${m.relabel}"`;
   return `${m.song} · Switch ${m.index + 1} "${m.label}": ${m.name} ${address(m)} → ${address(m.to)}`;
 }
 export function flagText(f) {
